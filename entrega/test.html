@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo Mario Kart</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Press+Start+2P&display=swap">
+
+</head>
+
+<body>
+
+    <div style="display: block;" id="telaInicio">
+
+        <div class="header">
+            <h1>Configurações da Corrida</h1>
+            <div class="cards">
+
+                <div class="personagem-card" id="marioCard" onclick="selecionarPersonagem('Mario')">
+                    <img src="mario.png" alt="Mario">
+                    <p>Mário</p>
+                </div>
+
+                <div class="personagem-card" id="luigiCard" onclick="selecionarPersonagem('Luigi')">
+                    <img src="luigi.png" alt="Luigi">
+                    <p>Luigi</p>
+                </div>
+
+                <div class="personagem-card" id="yoshiCard" onclick="selecionarPersonagem('Yoshi')">
+                    <img class="imgs" src="yoshi.png" alt="Yoshi">
+                    <p>Yoshi</p>
+                </div>
+
+                <div class="personagem-card" id="bowserCard" onclick="selecionarPersonagem('Bowser')">
+                    <img src="bower.png" alt="Bowser">
+                    <p>Bowser</p>
+                </div>
+            </div>
+        </div>
+        <br>
+
+        Quantidade de Jogadores: <input type="number" class="input" id="input_jogadores" min="2" max="15"> <br>
+        Quantidade de Voltas: <input type="number" class="input" id="input_voltas" min="2" max="10"> <br> <br>
+
+        <button class="botao" onclick="iniciarCorrida()">Iniciar Corrida</button>
+    </div>
+
+    <div style="display: none;" id="telaJogo">
+        <h1></h1>
+        <div id="status">
+            Personagem: <span id="personagem">Mário</span> <br>
+            Posição: <span id="posicaoJogador"></span> / <span id="qtdJogadores">12</span> <br>
+            Voltas: <span id="voltaAtual">1</span> / <span id="voltaMaxima">10</span>
+        </div>
+        <div id="poderes">
+            <span id="statusCaixa">Você não possui uma caixa!</span>
+            Poder Atual: <span id="statusPoder">Nenhum</span>
+        </div>
+        <!-- Tela da Pista de Corrida durante a Próxima Rodada -->
+        <div class="track-overlay" id="trackNextRoundOverlay">
+            <img class="track-gif" src="corrida_pista.gif" alt="Pista de Corrida">
+        </div>
+
+        <div class="botoes-rodada">
+            <button id="btnProximaRodada" class="botao" onclick="avancarRodada()">Próxima Rodada</button>
+            <button id="btnJogarNovamente" class="botao" onclick="jogarNovamente()"
+                style="color: rgb(255, 219, 57);">Jogar Novamente</button>
+        </div>
+    </div>
+
+
+    <script>
+        var maxJogadores = 12,
+            voltaAtual = 1,
+            maxVoltas = 10,
+            maxPosicao = 12,
+            jogador = {},
+            mapas = {},
+            caixaAguardando = false;
+
+        function iniciarCorrida() {
+            maxJogadores = Number(document.getElementById('input_jogadores').value);
+
+            // Verifica se o número de jogadores não ultrapassa 15
+            if (maxJogadores > 15) {
+                alert('O número máximo de jogadores é 15.');
+                return;
+            }
+
+            maxVoltas = Number(document.getElementById('input_voltas').value);
+
+            // Verifica se o número de voltas não ultrapassa 10
+            if (maxVoltas > 10) {
+                alert('O número de voltas não pode ser maior que 10.');
+                return;
+            }
+
+            maxPosicao = maxJogadores;
+
+            // Criação do jogador
+            jogador = {
+                nome: '',
+                posicao: 1,
+                poder: false,
+                possuiCaixa: false,
+                possuiPoder: false,
+            };
+
+            mapas = {
+                'Moonview Highway': {
+                    nome: 'Moonview Highway',
+                    atalhos: [
+                        {
+                            nomeAtalho: 'Zero Gravidade',
+                            descricao: 'Sua gravidade foi reduzida, e você ultrapassou os outros jogadores!'
+                        },
+                        {
+                            nomeAtalho: 'Velocidade Infinita',
+                            descricao: 'Agora você está correndo a velocidade da luz!'
+                        }
+                    ]
+                },
+
+                'Los Angeles Laps': {
+                    nome: 'Los Angeles Laps',
+                    atalhos: [
+                        {
+                            nomeAtalho: 'Ultrapassagem Forçada',
+                            descricao: 'Você viu uma abertura na pista e a utilizou para ultrapassar os outros Jogadores!'
+                        },
+                        {
+                            nomeAtalho: 'Rampa Inesperada',
+                            descricao: 'Um jogador atingiu a arena e criou uma rampa, e você não perdeu tempo!'
+                        }
+                    ]
+                }
+            }
+
+            document.getElementById('telaJogo').style.display = 'block';
+            document.getElementById('telaInicio').style.display = 'none';
+
+            // Inicializa o jogador com Mário por padrão
+            selecionarPersonagem('Mário');
+            atualizarInterface();
+        }
+
+        function avancarRodada() {
+            // Lógica de avançar a rodada e atualizar o estado do jogo
+            jogador.possuiCaixa = caixaAguardando;
+            var mapaAtual = sortearMapa();
+
+            if (jogador.possuiCaixa) {
+                aplicarPoderAleatorio();
+                alert(`Você pegou uma caixa de ${jogador.poder}!`);
+                caixaAguardando = false;
+            } else {
+                caixaAguardando = !caixaAguardando;
+            }
+
+            jogador.possuiPoder = false;
+
+            // Aplica os efeitos da caixa na posição
+            if (jogador.poder === "Ultrassônico") {
+                jogador.posicao -= 2;
+            } else if (jogador.poder === "Foguete") {
+                jogador.posicao -= 1;
+            } else if (jogador.poder === "Casco") {
+                jogador.posicao += 1;
+            }
+
+            // Limita a posição do jogador ao número máximo definido pelo usuário
+            jogador.posicao = Math.max(1, Math.min(jogador.posicao, maxPosicao));
+
+            var chanceAtalho = Math.random();
+            if (chanceAtalho <= 0.15) {
+                var atalhosDisponiveis = mapaAtual.atalhos;
+                if (atalhosDisponiveis.length > 0) {
+                    var atalhoSelecionado = atalhosDisponiveis[Math.floor(Math.random() * atalhosDisponiveis.length)];
+                    alert(`Você utilizou o atalho '${atalhoSelecionado.nomeAtalho}'! ${atalhoSelecionado.descricao}`);
+                    // Avança entre 2 ou 3 posições
+                    jogador.posicao += Math.floor(Math.random() * 2) - 2;
+                }
+            }
+
+            voltaAtual++;
+
+            if (voltaAtual > maxVoltas) {
+                document.getElementById('btnProximaRodada').style.display = 'none';
+                document.getElementById('btnJogarNovamente').style.display = 'block';
+                atualizarInterface();
+                alert(`Corrida finalizada! Posição: ${jogador.posicao}`);
+            } else {
+                atualizarInterface();
+            }
+        }
+
+        function sortearMapa() {
+            var mapasKeys = Object.keys(mapas);
+            var mapaAleatorio = mapas[mapasKeys[Math.floor(Math.random() * mapasKeys.length)]];
+            return mapaAleatorio;
+        }
+
+        function aplicarPoderAleatorio() {
+            var poderAleatorio = Math.random();
+
+            if (poderAleatorio < 0.33) {
+                jogador.poder = "Ultrassônico"; // 33% de chance de Ultrassônico
+            } else if (poderAleatorio < 0.66) {
+                jogador.poder = "Foguete"; // 33% de chance de Foguete
+            } else {
+                jogador.poder = "Casco"; // 33% de chance de Casco
+            }
+
+            document.getElementById('statusPoder').innerText = jogador.poder;
+        }
+
+        function selecionarPersonagem(personagem) {
+            jogador.nome = personagem;
+
+            // Remover a classe 'selecionado' de todos os cards
+            var cards = document.querySelectorAll('.personagem-card');
+            cards.forEach(card => card.classList.remove('selecionado'));
+
+            // Adicionar a classe 'selecionado' apenas ao card do personagem selecionado
+            document.getElementById(`${personagem.toLowerCase()}Card`).classList.add('selecionado');
+
+            document.getElementById('personagem').innerText = jogador.nome;
+        }
+
+        function atualizarInterface() {
+            // Atualiza a interface com os dados do jogo
+            document.getElementById('voltaAtual').innerText = voltaAtual - 1;
+            document.getElementById('voltaMaxima').innerText = maxVoltas;
+            document.getElementById('posicaoJogador').innerText = jogador.posicao;
+            document.getElementById('qtdJogadores').innerText = maxPosicao;
+            document.getElementById('statusCaixa').innerText = jogador.possuiCaixa
+                ? 'Você possui uma caixa de poder!'
+                : 'Você não possui uma caixa!';
+            document.getElementById('statusPoder').innerText = jogador.possuiCaixa ? jogador.poder : 'Nenhum';
+        }
+
+        function jogarNovamente() {
+            // Reiniciar o jogo
+            document.getElementById('telaInicio').style.display = 'block';
+            document.getElementById('telaJogo').style.display = 'none';
+            document.getElementById('btnProximaRodada').style.display = 'block';
+            document.getElementById('btnJogarNovamente').style.display = 'none';
+            voltaAtual = 1;
+            jogador = {};
+            caixaAguardando = false;
+            atualizarInterface();
+        }
+    </script>
+</body>
+
+</html>
