@@ -11,8 +11,13 @@
 </head>
 
 <body>
+    <div style="display: block;" id="telaCarregamento">
+        <img src="loading.gif" alt="Carregando">
+        <h1>Carregando...</h1>
+        <button class="botao" onclick="iniciarJogo()">Play</button>
+    </div>
 
-    <div style="display: block;" id="telaInicio">
+    <div style="display: none;" id="telaInicio">
 
         <div class="header">
             <h1>Configurações da Corrida</h1>
@@ -72,6 +77,11 @@
 
 
     <script>
+
+        function iniciarJogo() {
+            document.getElementById('telaCarregamento').style.display = 'none';
+            document.getElementById('telaInicio').style.display = 'block';
+        }
         var maxJogadores = 12,
             voltaAtual = 1,
             maxVoltas = 10,
@@ -170,8 +180,8 @@
                 jogador.posicao += 1;
             }
 
-            // Limita a posição do jogador ao número máximo definido pelo usuário
-            jogador.posicao = Math.max(1, Math.min(jogador.posicao, maxPosicao));
+            // Garante que a posição do jogador seja um número inteiro positivo
+            jogador.posicao = Math.max(1, Math.round(jogador.posicao));
 
             var chanceAtalho = Math.random();
             if (chanceAtalho <= 0.15) {
@@ -195,6 +205,7 @@
                 atualizarInterface();
             }
         }
+
 
         function sortearMapa() {
             var mapasKeys = Object.keys(mapas);
